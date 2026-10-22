@@ -13,6 +13,45 @@ The archive does not identify the observation product, complete data period, or
 precipitation units, so these are exploratory diagnostics rather than a fully
 reproducible benchmark.
 
+## Where this was run and where the data are
+
+The original experiments were run on **PRISM at NASA's NCCS (NASA Center for
+Climate Simulation)**. The archived notebooks used the working directory
+`/home/afahad/nb/precip_SA/`. This is the original recorded project/data location
+on that environment; its current availability has not been checked from this
+checkout.
+
+| Input or checkpoint | Original location on PRISM | Purpose |
+| --- | --- | --- |
+| `ml_data_pr.npz` | `/home/afahad/nb/precip_SA/ml_data_pr.npz` | Prepared precipitation predictors `X`, observed targets `Y`, coordinates `lon`/`lat`, and sample dates `date`. |
+| `ml_data1.npz` | `/home/afahad/nb/precip_SA/ml_data1.npz` | Auxiliary `X1` predictors labeled GEOS-S2S-3 VP in the notebook, with `lon1`/`lat1`. |
+| `ml_data2.npz` | `/home/afahad/nb/precip_SA/ml_data2.npz` | Auxiliary predictors stored under `X1`, labeled M2 VP in the notebook. |
+| `random_numbers.npz` | `random_numbers.npz` relative to the original working directory | Saved sample permutation; included here as `data/random_numbers.npz`. |
+| Model weights | `/home/afahad/nb/precip_SA/best_model_weights.h5`, `best_model_weights2.h5`, and `best_model_weights_unet.h5` | Checkpoint paths used by the three model notebooks. |
+
+The large training arrays and checkpoints remain external to this repository;
+they were not present in the supplied archive. Use the original PRISM location
+when the files are available there, or obtain copies from the project owner.
+The repository contains the prepared-array loading workflow, not the upstream
+raw-data acquisition or preprocessing pipeline. Full array keys and assumptions
+are listed in [data/README.md](data/README.md).
+
+In this organized checkout, the default input and checkpoint folders are `data/`
+and `models/`. To use the original directory from a PRISM session, set the paths
+before launching Jupyter from the repository root:
+
+```bash
+export PRECIP_DATA_DIR=/home/afahad/nb/precip_SA
+export PRECIP_WEIGHTS_DIR=/home/afahad/nb/precip_SA
+python -m jupyterlab
+```
+
+The core notebooks use Python, TensorFlow/Keras, NumPy, xarray, Dask, and
+Matplotlib/Cartopy. Archived kernel metadata reports Python 3.12.8. Their setup
+detects available GPUs and enables TensorFlow GPU memory growth; the exact GPU
+hardware, CUDA version, package versions, and scheduler/job configuration were
+not recorded in the archive.
+
 ## Project contents
 
 ```text
@@ -47,6 +86,56 @@ reproducible benchmark.
 
 See the [notebook guide](docs/NOTEBOOK_GUIDE.md) for training settings, evaluation
 logic, and known issues in the archived research code.
+
+## How the models were trained
+
+The notebooks implement supervised learning from prepared gridded predictors to
+two observed precipitation target channels, labeled one- and two-month lead in
+the plots. Inputs and targets use channel-last arrays with a 91 × 101 spatial
+grid. The baseline uses three precipitation input channels. The augmented CNN
+and deep-supervision experiment concatenate precipitation and the two auxiliary
+VP input groups into seven channels.
+
+The training workflow encoded in the notebooks is:
+
+1. **Load and prepare arrays.** The baseline passes precipitation inputs and
+   targets through without active standardization. The augmented notebooks
+   replace auxiliary-input NaNs with each array's global mean, standardize each
+   input group and the targets using its global mean and standard deviation,
+   and concatenate the standardized input groups.
+2. **Apply the saved sample ordering.** Load `random_numbers.npz` and apply the
+   same permutation to predictors, targets, and dates. Samples `0:500` form the
+   training/validation pool; samples `500:` are reserved for testing.
+3. **Fit the CNN.** Models use 3 × 3 convolutions with ReLU activation and batch
+   normalization, followed by linear two-channel output layers. Optimization
+   uses Adam and mean squared error (MSE). The deep-supervision CNN has two
+   prediction heads with loss weights 0.5 for the intermediate output and 1.0
+   for the final output.
+4. **Select weights using validation loss.** The active training cells use
+   `ModelCheckpoint` with `monitor='val_loss'`, `mode='min'`,
+   `save_best_only=True`, and `save_weights_only=True`. The validation subset
+   comes from the 500-sample pool through Keras `validation_split`; it is separate
+   from the test samples. The supplied code has no early-stopping callback.
+5. **Reload and evaluate.** Load the selected checkpoint, predict on the test
+   samples, and undo target standardization where applied. The deep-supervision
+   notebook selects the final prediction head. Diagnostics compare corrected
+   and raw GEOS forecasts against observations using RMSE, temporal correlation,
+   mean bias, and individual-case maps.
+
+| Notebook/model | Epochs requested in code | Batch size | Validation fraction of the 500-sample pool | Checkpoint | State in supplied notebook |
+| --- | --- | --- | --- | --- | --- |
+| `GEOS_ML_precip.ipynb` — baseline | 500 | 16 | 0.15 (75 validation; 425 fitting samples) | `best_model_weights.h5` | Training cell is active. |
+| `GEOS_ML_precip2.ipynb` — augmented CNN | 100 | 100 | 0.10 (50 validation; 450 fitting samples) | `best_model_weights2.h5` | Training and checkpoint callback are commented out; prediction loads existing weights. These are the commented training settings, not a verified completed run. |
+| `GEOS_ML_precip3_unet.ipynb` — deep-supervision CNN | 300 | 32 | 0.10 (50 validation; 450 fitting samples) | `best_model_weights_unet.h5` | Training cell is active and saved loss curves are included. The active model is a CNN with two output heads. |
+
+Each notebook attempts to load existing weights before training, so a run may
+resume from a supplied checkpoint rather than start from random initialization.
+Epoch counts above describe the requested fit settings; the archive does not
+provide a complete run manifest establishing the initialization and execution
+history for every saved result. The augmented preprocessing computes scaling
+statistics before splitting; review the [scientific and reproducibility notes](#scientific-and-reproducibility-notes)
+before retraining or comparing models. No new training was performed during
+repository organization.
 
 ## Which version to use for handoff
 
