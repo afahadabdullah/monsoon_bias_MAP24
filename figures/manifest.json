@@ -34,5 +34,23 @@
     "sha256": "b0df6c27a24a9255e9fc18ea6287d428f2842566943b5872eaea77d1b0602a3d",
     "caption": "Saved training and validation loss for the notebook's deep-supervision experiment.",
     "provenance": "Saved output supplied in precip_SA.tar; not recomputed."
+  },
+  {
+    "figure": "figures/baseline_saliency.png",
+    "source_notebook": "notebooks/GEOS_ML_precip.ipynb",
+    "cell_index": 38,
+    "output_index": 1,
+    "sha256": "ceeba9ff2a1601f84b8bfc8a539ea92c920f5f79767f55fc39339c37a5e2d5f3",
+    "caption": "Saved baseline signed normalized input gradients, averaged over test samples for input channel 2.",
+    "provenance": "Saved output supplied in precip_SA.tar; not recomputed."
+  },
+  {
+    "figure": "figures/vp_saliency.png",
+    "source_notebook": "notebooks/GEOS_ML_precip2.ipynb",
+    "cell_index": 60,
+    "output_index": 0,
+    "sha256": "ce26ab70d16293dcda87173378f934de6fc47e018cdc140ce8d57a5424131e42",
+    "caption": "Saved mean signed normalized input gradients for auxiliary channels 3 (top) and 4 (bottom); archived input-scaling limitations apply.",
+    "provenance": "Saved output supplied in precip_SA.tar; not recomputed."
   }
 ]

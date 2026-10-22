@@ -82,7 +82,7 @@ not recorded in the archive.
 | [GEOS_ML_precip3_unet.ipynb](notebooks/GEOS_ML_precip3_unet.ipynb) | Explores deeper models. The active final model is a CNN with intermediate/final output heads and weighted MSE losses; the U-Net implementation is commented out. Includes saved training curves and forecast/saliency plots. |
 | [Untitled.ipynb](notebooks/exploratory/Untitled.ipynb) | Separate visualization experiments: US county choropleth, sample global-wind NetCDF, Leafmap raster/velocity layers, and HTML export. |
 | [Untitled1.ipynb](notebooks/exploratory/Untitled1.ipynb) | Draft conversion of a wind grid to GeoJSON points plus xarray interpolation; needs cell-order fixes before clean execution. |
-| [export_readme_figures.py](scripts/export_readme_figures.py) | Extracts four selected PNG outputs from the notebooks and writes [manifest.json](figures/manifest.json) with source cell/output indices and SHA-256 hashes. Uses only the Python standard library. |
+| [export_readme_figures.py](scripts/export_readme_figures.py) | Extracts six selected PNG outputs, including two saliency figures, from the notebooks and writes [manifest.json](figures/manifest.json) with source cell/output indices and SHA-256 hashes. Uses only the Python standard library. |
 
 See the [notebook guide](docs/NOTEBOOK_GUIDE.md) for training settings, evaluation
 logic, and known issues in the archived research code.
@@ -177,12 +177,12 @@ For the person taking over:
    held-out data before selecting a best model.
 
 For a **documentation-only handoff**, run
-`python3 scripts/export_readme_figures.py`. This refreshes the four README plots
+`python3 scripts/export_readme_figures.py`. This refreshes the six README plots
 from saved notebook outputs; it does not train a model or run new forecasts.
 
 ## Saved plots
 
-All four plots below come directly from embedded notebook outputs. Source cell
+All six plots in the forecast and XAI sections come directly from embedded notebook outputs. Source cell
 indices are zero-based and recorded in the [figure manifest](figures/manifest.json).
 The separate [GEOSML.png](figures/GEOSML.png) is preserved as supplied; its exact
 generating cell was not established.
@@ -221,6 +221,92 @@ From `GEOS_ML_precip3_unet.ipynb`, cell 27. This archived curve shows the traini
 and validation loss histories. Their widening gap warrants review of
 generalization; the curve alone does not establish predictive skill or a U-Net
 result.
+
+## Explainable AI (XAI): gradient saliency maps
+
+The saliency experiments ask **which input locations and channels the model's
+predicted precipitation is locally sensitive to**. They differentiate a scalar
+summary of the model output with respect to the input tensor. This is a
+post-training diagnostic: it does not update model weights. TensorFlow's
+[`GradientTape` automatic differentiation](https://www.tensorflow.org/guide/autodiff)
+records the prediction computation and calculates these input gradients.
+
+### How the notebook calculation works
+
+1. Convert the input samples to a floating-point TensorFlow tensor and explicitly
+   watch that tensor with `tape.watch(X_sample)`.
+2. Run `predictions = model(X_sample)` inside `tf.GradientTape()` and reduce the
+   predictions to a scalar with `score = tf.reduce_mean(predictions)`. In the
+   single-output CNN notebooks, this averages over samples, output grid cells,
+   and both lead channels. It is not a gradient of forecast error against observations.
+3. Compute `grads = tape.gradient(score, X_sample)`. Each value describes the
+   local response of the mean prediction to a small increase in one input value,
+   holding the other inputs fixed.
+4. Rescale the gradients with
+   `normalized_grads = grads / (sqrt(mean(grads**2)) + 1e-5)`. The denominator is
+   one root-mean-square value over the gradient tensor, plus a small stabilizer.
+   This preserves signs and rescales magnitudes; the values are not percentages
+   or precipitation amounts.
+5. Plot a selected channel on its input coordinates. Mean maps use
+   `np.nanmean(saliency_map[..., channel], axis=0)` across samples; individual-case
+   maps select one sample instead. Averaging signed gradients can cancel opposing
+   responses, so a weak mean map can hide stronger case-specific sensitivity.
+
+This implementation uses ordinary input gradients. It does not implement SHAP,
+Grad-CAM, or Integrated Gradients; the latter integrates gradients along an input
+path, as described in [TensorFlow's Integrated Gradients tutorial](https://www.tensorflow.org/tutorials/interpretability/integrated_gradients).
+
+### Saved precipitation-input saliency
+
+![Baseline CNN mean signed normalized gradient for precipitation input channel 2](figures/baseline_saliency.png)
+
+From `GEOS_ML_precip.ipynb`, cell 38, using the gradient calculation in cells
+36–37. This is the mean signed normalized gradient for **input channel 2**
+(zero-based), plotted over South Asia. Teal/green denotes positive sensitivity:
+a small increase in that input increases the mean predicted output locally in
+input space. Brown denotes negative sensitivity; pale colors are near zero.
+The location shown is the input location, not necessarily the location of an
+affected output grid cell. Because the score averages both output leads, this
+map is not specific to one forecast lead.
+
+### Saved auxiliary-input saliency
+
+![Archived mean gradient maps for auxiliary input channels 3 and 4, top and bottom](figures/vp_saliency.png)
+
+From `GEOS_ML_precip2.ipynb`, cell 60, using the calculation in cells 53–54.
+The upper and lower panels show sample-mean signed normalized gradients for
+**input channels 3 and 4**, respectively, plotted on the auxiliary `lon1`/`lat1`
+coordinates. These are the first two auxiliary channels after the three
+precipitation channels; confirm their physical definitions with the NPZ data
+before assigning specific variable/lead labels. The broad patterns are archived
+model-sensitivity diagnostics, not evidence of causal atmospheric connections.
+
+### How to use and interpret XAI during handoff
+
+Use the maps to inspect whether sensitivity falls in plausible regions, compare
+channels and individual cases, and identify unexpected model behavior for further
+testing. Large absolute gradients indicate greater **local sensitivity to the
+chosen scalar output**, not a guaranteed contribution to forecast skill. Near-zero
+gradients do not prove a feature is irrelevant.
+
+The archived augmented-model saliency calculation feeds `original_X` into a
+model trained on standardized inputs. It also reconstructs all seven input
+channels using precipitation-group scaling. These input-space inconsistencies
+must be corrected before treating the auxiliary maps as explanations of normal
+inference. The displayed PNGs are preserved outputs and have not been recomputed.
+
+For a new XAI run, load the intended checkpoint, feed the same standardized
+`X_norm_test` used for inference in the augmented models, and call
+`model(inputs, training=False)`. In notebook 3, explicitly select the final output
+head before reducing it to a scalar. To explain a particular lead, region, or
+case, select that target before taking its mean and differentiating. Record the
+checkpoint, input preprocessing, target selection, and channel definitions with
+the resulting plot. The baseline notebook uses its unstandardized inputs because
+that is how its model is trained.
+
+To refresh the two archived XAI plots together with the forecast figures, run
+`python3 scripts/export_readme_figures.py`. Recomputing gradients requires the
+external data and compatible trained weights; exporting the saved PNGs does not.
 
 ## Setup and use
 

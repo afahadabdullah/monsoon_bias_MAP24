@@ -20,6 +20,10 @@ SELECTION = (
      "Saved two-month-lead example: GEOS, CNN-corrected forecast, observations, and biases."),
     ("GEOS_ML_precip3_unet.ipynb", 27, "training_loss.png",
      "Saved training and validation loss for the notebook's deep-supervision experiment."),
+    ("GEOS_ML_precip.ipynb", 38, "baseline_saliency.png",
+     "Saved baseline signed normalized input gradients, averaged over test samples for input channel 2."),
+    ("GEOS_ML_precip2.ipynb", 60, "vp_saliency.png",
+     "Saved mean signed normalized input gradients for auxiliary channels 3 (top) and 4 (bottom); archived input-scaling limitations apply."),
 )
 
 
