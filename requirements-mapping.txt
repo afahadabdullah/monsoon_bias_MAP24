@@ -1,0 +1,7 @@
+# Optional dependencies for notebooks/exploratory, in addition to requirements.txt.
+plotly
+pandas
+scipy
+leafmap
+basemap
+localtileserver

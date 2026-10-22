@@ -1,0 +1,12 @@
+# Inferred from notebook imports; not an original or tested environment lock.
+jupyterlab
+ipykernel
+numpy
+tensorflow
+h5py
+matplotlib
+xarray
+scikit-learn
+dask[dataframe,distributed]
+cartopy
+netCDF4

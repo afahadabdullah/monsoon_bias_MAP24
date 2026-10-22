@@ -1,3 +1,17 @@
 .ipynb_checkpoints/
 __pycache__/
 *.pyc
+.DS_Store
+.venv/
+.env
+.env.*
+data/*
+!data/README.md
+!data/random_numbers.npz
+models/*
+!models/README.md
+results/
+notebooks/exploratory/*.nc
+notebooks/exploratory/*.tif
+notebooks/exploratory/*.geojson
+notebooks/exploratory/*.html

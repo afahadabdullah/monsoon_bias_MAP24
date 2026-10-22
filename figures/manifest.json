@@ -1,0 +1,38 @@
+[
+  {
+    "figure": "figures/cnn_skill.png",
+    "source_notebook": "notebooks/GEOS_ML_precip2.ipynb",
+    "cell_index": 43,
+    "output_index": 0,
+    "sha256": "44055dd8c734dbeb7f722f0409b0cf721af638265f1a204aacbb33027a13e77d",
+    "caption": "Two-month-lead test-set RMSE, correlation, and ML-minus-GEOS differences.",
+    "provenance": "Saved output supplied in precip_SA.tar; not recomputed."
+  },
+  {
+    "figure": "figures/cnn_mean_lead2.png",
+    "source_notebook": "notebooks/GEOS_ML_precip2.ipynb",
+    "cell_index": 46,
+    "output_index": 1,
+    "sha256": "5afaa77479584770ed3d470490edd1697b5308311be48315c7dcaea0fd5f3cea",
+    "caption": "Two-month-lead test-set mean precipitation and mean forecast-minus-observation bias.",
+    "provenance": "Saved output supplied in precip_SA.tar; not recomputed."
+  },
+  {
+    "figure": "figures/cnn_case.png",
+    "source_notebook": "notebooks/GEOS_ML_precip2.ipynb",
+    "cell_index": 40,
+    "output_index": 2,
+    "sha256": "fd8ede510f7bdfe78a587e98c905f7d86f4363b8bc78145c2af503073fcb47cb",
+    "caption": "Saved two-month-lead example: GEOS, CNN-corrected forecast, observations, and biases.",
+    "provenance": "Saved output supplied in precip_SA.tar; not recomputed."
+  },
+  {
+    "figure": "figures/training_loss.png",
+    "source_notebook": "notebooks/GEOS_ML_precip3_unet.ipynb",
+    "cell_index": 27,
+    "output_index": 0,
+    "sha256": "b0df6c27a24a9255e9fc18ea6287d428f2842566943b5872eaea77d1b0602a3d",
+    "caption": "Saved training and validation loss for the notebook's deep-supervision experiment.",
+    "provenance": "Saved output supplied in precip_SA.tar; not recomputed."
+  }
+]
