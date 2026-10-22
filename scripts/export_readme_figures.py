@@ -24,6 +24,8 @@ SELECTION = (
      "Saved baseline signed normalized input gradients, averaged over test samples for input channel 2."),
     ("GEOS_ML_precip2.ipynb", 60, "vp_saliency.png",
      "Saved mean signed normalized input gradients for auxiliary channels 3 (top) and 4 (bottom); archived input-scaling limitations apply."),
+    ("GEOS_ML_precip2.ipynb", 67, "vp_saliency_pacific_view.png",
+     "Saved Pacific-centered saliency plotting output from the channel-6 mean-gradient workflow; not an exact match to the supplied VP300 proposal figure."),
 )
 
 

@@ -82,7 +82,7 @@ not recorded in the archive.
 | [GEOS_ML_precip3_unet.ipynb](notebooks/GEOS_ML_precip3_unet.ipynb) | Explores deeper models. The active final model is a CNN with intermediate/final output heads and weighted MSE losses; the U-Net implementation is commented out. Includes saved training curves and forecast/saliency plots. |
 | [Untitled.ipynb](notebooks/exploratory/Untitled.ipynb) | Separate visualization experiments: US county choropleth, sample global-wind NetCDF, Leafmap raster/velocity layers, and HTML export. |
 | [Untitled1.ipynb](notebooks/exploratory/Untitled1.ipynb) | Draft conversion of a wind grid to GeoJSON points plus xarray interpolation; needs cell-order fixes before clean execution. |
-| [export_readme_figures.py](scripts/export_readme_figures.py) | Extracts six selected PNG outputs, including two saliency figures, from the notebooks and writes [manifest.json](figures/manifest.json) with source cell/output indices and SHA-256 hashes. Uses only the Python standard library. |
+| [export_readme_figures.py](scripts/export_readme_figures.py) | Extracts seven selected PNG outputs, including three saliency figures, from the notebooks and writes [manifest.json](figures/manifest.json) with source cell/output indices and SHA-256 hashes. Uses only the Python standard library. |
 
 See the [notebook guide](docs/NOTEBOOK_GUIDE.md) for training settings, evaluation
 logic, and known issues in the archived research code.
@@ -177,12 +177,13 @@ For the person taking over:
    held-out data before selecting a best model.
 
 For a **documentation-only handoff**, run
-`python3 scripts/export_readme_figures.py`. This refreshes the six README plots
+`python3 scripts/export_readme_figures.py`. This refreshes the seven notebook-derived README plots
 from saved notebook outputs; it does not train a model or run new forecasts.
 
 ## Saved plots
 
-All six plots in the forecast and XAI sections come directly from embedded notebook outputs. Source cell
+Seven plots in the forecast and XAI sections come directly from embedded notebook outputs;
+the supplied proposal reference is identified separately below. Source cell
 indices are zero-based and recorded in the [figure manifest](figures/manifest.json).
 The separate [GEOSML.png](figures/GEOSML.png) is preserved as supplied; its exact
 generating cell was not established.
@@ -230,6 +231,95 @@ summary of the model output with respect to the input tensor. This is a
 post-training diagnostic: it does not update model weights. TensorFlow's
 [`GradientTape` automatic differentiation](https://www.tensorflow.org/guide/autodiff)
 records the prediction computation and calculates these input gradients.
+
+### Which code produces the VP300-style saliency map?
+
+The relevant code is in **[GEOS_ML_precip2.ipynb](notebooks/GEOS_ML_precip2.ipynb)**.
+Search for `with tf.GradientTape() as tape:` to find the gradient calculation and
+`sal=np.nanmean(saliency_map[:,:,:,6],0)` to find the channel selected for the
+Pacific-centered map. The same workflow is also present in
+[GEOS_ML_precip3_unet.ipynb](notebooks/GEOS_ML_precip3_unet.ipynb).
+
+The following indices count **all notebook cells from zero**, including empty
+cells; they are not Jupyter `In[...]` execution numbers.
+
+| Operation | `GEOS_ML_precip2.ipynb` | `GEOS_ML_precip3_unet.ipynb` |
+| --- | --- | --- |
+| Watch inputs, predict, differentiate the mean prediction, and normalize gradients | Cell 53 | Cell 47 |
+| Convert gradients to the NumPy array `saliency_map` | Cell 54 | Cell 48 |
+| Compute sample-mean saliency of input channel 6 as `sal` | Cell 61 | Cell 56 |
+| Build an xarray dataset with `lon1`/`lat1` coordinates | Cell 63 | Cell 58 |
+| Define/use `wrap360` to wrap longitude coordinates | Definition in cell 57; call in cell 65 | Definition in cell 52; call in cell 60 |
+| Define the Pacific-centered Cartopy plotting helper | Cell 66 | Cell 61 |
+| Draw the saved Pacific-centered map | Cell 67 | Cell 62 |
+
+The gradient calculation in notebook 2, cells 53–54, is:
+
+```python
+X_sample = tf.convert_to_tensor(original_X.astype(np.float32), dtype=tf.float32)
+with tf.GradientTape() as tape:
+    tape.watch(X_sample)
+    predictions = model(X_sample)
+    loss = tf.reduce_mean(predictions)
+
+grads = tape.gradient(loss, X_sample)
+normalized_grads = grads / (tf.sqrt(tf.reduce_mean(tf.square(grads))) + 1e-5)
+saliency_map = normalized_grads.numpy()
+```
+
+Cell 61 selects and averages the channel for the later regional view:
+
+```python
+sal = np.nanmean(saliency_map[:, :, :, 6], axis=0)
+```
+
+Cells 63–67 attach coordinates, wrap longitudes, define a helper using
+`ccrs.PlateCarree(central_longitude=180)` and the requested extent
+`[60, 250, -40, 40]`, then call:
+
+```python
+fig = plt.figure(figsize=(11, 8.5))
+ax = plot(sal, sal1.lon, lat1, clf=clf, cmap=cmap, sub=[1, 1, 1], fig=fig)
+plt.tight_layout()
+```
+
+This last block depends on the preceding data, model, gradient, coordinate, and
+plot-helper cells; it is not a standalone script. The actual saved output of
+notebook 2, cell 67, is:
+
+![Saved Pacific-centered auxiliary saliency plotting output from notebook 2 cell 67](figures/vp_saliency_pacific_view.png)
+
+The archived output is a full-world view with a brown/teal palette, despite the
+regional extent in the current helper source. This source/output mismatch means
+the saved PNG cannot establish the exact plotting state used to generate it.
+Longitude/data alignment also needs review: `wrap360` sorts the dataset, while
+the final call passes the original `sal` values with the wrapped longitude array.
+
+### Supplied VP300 proposal figure and its relationship to the code
+
+![User-supplied proposal reference showing the Conv2D architecture and VP300 saliency panel](figures/vp300_proposal_reference.png)
+
+This is the supplied proposal screenshot, preserved unchanged as a **reference
+figure**, rather than an exported notebook result. Its panel (b) identifies the
+field as **velocity potential at 300 hPa (VP300)**. The gradient-and-map workflow
+above is the relevant implementation found in the archive, but an exact match to
+this red/blue regional panel was not found among the saved main-notebook or
+checkpoint saliency outputs inspected.
+
+The reference architecture shows six input channels and convolution layers
+32/64/128. The current augmented notebook defines seven input channels and layers
+32/64/128/256, so the reference may represent another experiment revision.
+The archived inputs are labeled VP and M2 VP in code, but their channel metadata
+does not establish that channel 6 is the exact VP300 field used in the reference.
+The implemented gradient target also averages both output leads rather than
+explicitly selecting the second lead. Confirm the original checkpoint, feature
+definitions, target selection, and plotting revision before claiming an exact
+reproduction of the proposal panel.
+
+Positive and negative values indicate the direction of local prediction
+sensitivity. The regression code computes neither a confidence probability nor
+whether a feature improves accuracy; those interpretations require additional
+evaluation beyond the gradient sign.
 
 ### How the notebook calculation works
 
@@ -304,9 +394,11 @@ checkpoint, input preprocessing, target selection, and channel definitions with
 the resulting plot. The baseline notebook uses its unstandardized inputs because
 that is how its model is trained.
 
-To refresh the two archived XAI plots together with the forecast figures, run
+To refresh the three archived XAI plots together with the forecast figures, run
 `python3 scripts/export_readme_figures.py`. Recomputing gradients requires the
 external data and compatible trained weights; exporting the saved PNGs does not.
+The separately supplied proposal reference is a static image and is not recreated
+by the exporter.
 
 ## Setup and use
 

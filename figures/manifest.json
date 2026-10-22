@@ -52,5 +52,14 @@
     "sha256": "ce26ab70d16293dcda87173378f934de6fc47e018cdc140ce8d57a5424131e42",
     "caption": "Saved mean signed normalized input gradients for auxiliary channels 3 (top) and 4 (bottom); archived input-scaling limitations apply.",
     "provenance": "Saved output supplied in precip_SA.tar; not recomputed."
+  },
+  {
+    "figure": "figures/vp_saliency_pacific_view.png",
+    "source_notebook": "notebooks/GEOS_ML_precip2.ipynb",
+    "cell_index": 67,
+    "output_index": 0,
+    "sha256": "1c43302b6c7115ea2ea9d47b6166255118c1c53b0d32353b0c03a7eb832cc9a3",
+    "caption": "Saved Pacific-centered saliency plotting output from the channel-6 mean-gradient workflow; not an exact match to the supplied VP300 proposal figure.",
+    "provenance": "Saved output supplied in precip_SA.tar; not recomputed."
   }
 ]
