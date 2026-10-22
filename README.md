@@ -48,6 +48,49 @@ reproducible benchmark.
 See the [notebook guide](docs/NOTEBOOK_GUIDE.md) for training settings, evaluation
 logic, and known issues in the archived research code.
 
+## Which version to use for handoff
+
+**Start with [GEOS_ML_precip2.ipynb](notebooks/GEOS_ML_precip2.ipynb)** for a
+research handoff. It is the recommended starting point because it combines the
+seven-channel input workflow with saved RMSE, correlation, bias, and case-map
+diagnostics. It is a notebook, not a standalone prediction script or a packaged
+deployment model. Its weights and data must be supplied separately.
+
+| Version | Role | Handoff recommendation |
+| --- | --- | --- |
+| `GEOS_ML_precip.ipynb` | Three-channel baseline | Use for understanding the simpler model and as a baseline comparison. |
+| **`GEOS_ML_precip2.ipynb`** | Seven-channel augmented CNN | **Primary handoff notebook** for reviewing the existing forecast-correction workflow and saved skill diagnostics. |
+| `GEOS_ML_precip3_unet.ipynb` | Most advanced experiment in the supplied numbered sequence: a CNN with intermediate/final prediction heads | Use for continuing model development. The active model is not a U-Net; U-Net code is commented out. |
+
+**Latest experimental version:** notebook 3 in the numbered sequence. This is an
+ordering inferred from the filenames and model progression, not a release date
+or a documented production designation. **Best-performing version:** not
+established by this archive. There is no controlled side-by-side evaluation of
+all three models, complete evaluation metadata, or supplied checkpoints that
+would justify naming an accuracy winner. Notebook 2 is recommended for handoff
+readiness, not proven superior predictive performance.
+
+For the person taking over:
+
+1. Read this README, [data requirements](data/README.md),
+   [checkpoint requirements](models/README.md), and the
+   [notebook guide](docs/NOTEBOOK_GUIDE.md).
+2. Open `notebooks/GEOS_ML_precip2.ipynb` in Jupyter and select the project kernel.
+   Supply `ml_data_pr.npz`, `ml_data1.npz`, `ml_data2.npz`, and the compatible
+   `best_model_weights2.h5` checkpoint. Keep the included sample permutation.
+3. Run the path/import, loading, normalization, permutation, model-definition,
+   and split cells in order, then load weights and run prediction/evaluation.
+   If retraining, enable the commented training cell and resolve the environment
+   and checkpoint compatibility notes first.
+4. Validate normalization, channel alignment, and the temporal evaluation split
+   before treating the results as a reproducible benchmark. Carry notebook 3
+   forward as a separate development experiment and compare it on the same
+   held-out data before selecting a best model.
+
+For a **documentation-only handoff**, run
+`python3 scripts/export_readme_figures.py`. This refreshes the four README plots
+from saved notebook outputs; it does not train a model or run new forecasts.
+
 ## Saved plots
 
 All four plots below come directly from embedded notebook outputs. Source cell
